@@ -152,6 +152,10 @@ void RoceSrc::processNack(const RoceNack& nack){
     }
 
     _highest_sent = _last_acked;
+    if (_window_blocked) {
+        _window_blocked = false;
+        eventlist().sourceIsPendingRel(*this, 0);
+    }
     _nacks_received ++;
 
     //this packet be sent when it is time to send a new packet!
@@ -194,6 +198,10 @@ void RoceSrc::processAck(const RoceAck& ack) {
         // the cumulative ack, but we'll get an ACK or NACK anyway in
         // due course.
         _last_acked = ackno;
+        if (_window_blocked) {
+            _window_blocked = false;
+            eventlist().sourceIsPendingRel(*this, 0);
+        }
     }
     if (_logger) _logger->logRoce(*this, RoceLogger::ROCE_RCV);
 
@@ -322,6 +330,12 @@ void RoceSrc::doNextEvent() {
     if (_flow_size && _highest_sent >= _flow_size) { 
         if (_log_me) 
             cout << "Src " << get_id()  << " stopping send coz highest_sent is " << _highest_sent << endl;
+        return;
+    }
+
+    if (_window && _highest_sent - _last_acked >= _window) {
+        // The window is full: the next ACK restarts the pacing.
+        _window_blocked = true;
         return;
     }
 

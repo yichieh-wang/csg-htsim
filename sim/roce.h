@@ -62,6 +62,7 @@ public:
     }
 
     void set_end_trigger(Trigger& trigger);
+    void set_window(uint64_t bytes) { _window = bytes; }
 
     virtual void doNextEvent();
     virtual void receivePacket(Packet& pkt);
@@ -135,6 +136,8 @@ private:
     void clear_timer(uint64_t start,uint64_t end);
 
     uint64_t _flow_size;  //The flow size in bytes.  Stop sending after this amount.
+    uint64_t _window = 0;   // bytes in flight allowed (0 = no window); the next ACK restarts a source that filled it
+    bool _window_blocked = false;
     simtime_picosec _stop_time;
     simtime_picosec _packet_spacing;
     simtime_picosec _time_last_sent;
