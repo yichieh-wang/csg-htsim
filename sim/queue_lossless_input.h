@@ -16,6 +16,7 @@
 #include "callback_pipe.h"
 
 class Switch;
+class PfcAccount;
 
 class LosslessInputQueue : public Queue, public VirtualQueue {
 public:
@@ -38,10 +39,15 @@ public:
 
     static uint64_t _low_threshold;
     static uint64_t _high_threshold;
+    // With an account the switch decides pause and resume dynamically (pfc_account.h);
+    // without one the static thresholds above rule, as they always did.
+    void setAccount(PfcAccount* account, uint32_t port) { _account = account; _account_port = port; }
 
 private:
     int _state_recv;
     CallbackPipe* _wire;
+    PfcAccount* _account = NULL;
+    uint32_t _account_port = 0;
 };
 
 #endif

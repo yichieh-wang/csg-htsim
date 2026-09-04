@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include "switch.h"
+#include "pfc_account.h"
 
 uint64_t LosslessInputQueue::_high_threshold = 0;
 uint64_t LosslessInputQueue::_low_threshold = 0;
@@ -67,7 +68,15 @@ LosslessInputQueue::receivePacket(Packet& pkt)
 
     //send PAUSE notifications if that is the case!
     assert(_queuesize > 0);
-    if ((uint64_t)_queuesize > _high_threshold && _state_recv!=PAUSED){
+    if (_account) {
+        // A packet the headroom cannot take is a lossless failure: reported as a drop, kept.
+        if (!_account->admissible(_account_port, pkt.size()) && _logger)
+            _logger->logQueue(*this, QueueLogger::PKT_DROP, pkt);
+        if (_account->arrive(_account_port, pkt.size()) && _state_recv != PAUSED) {
+            _state_recv = PAUSED;
+            sendPause(1000);
+        }
+    } else if ((uint64_t)_queuesize > _high_threshold && _state_recv!=PAUSED){
         _state_recv = PAUSED;
         sendPause(1000);
     }
@@ -97,7 +106,12 @@ void LosslessInputQueue::completedService(Packet& pkt){
 
     //unblock if that is the case
     assert(_queuesize >= 0);
-    if ((uint64_t)_queuesize < _low_threshold && _state_recv == PAUSED) {
+    if (_account) {
+        if (_account->depart(_account_port, pkt.size()) && _state_recv == PAUSED) {
+            _state_recv = READY;
+            sendPause(0);
+        }
+    } else if ((uint64_t)_queuesize < _low_threshold && _state_recv == PAUSED) {
         _state_recv = READY;
         sendPause(0);
     }
