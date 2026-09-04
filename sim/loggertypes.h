@@ -93,7 +93,7 @@ class TrafficLogger : public Logger {
 
 class QueueLogger : public Logger  {
  public:
-    enum QueueEvent { PKT_ENQUEUE=0, PKT_DROP=1, PKT_SERVICE=2, PKT_TRIM=3, PKT_BOUNCE=4, PKT_UNQUEUE=5, PKT_ARRIVE=6 };
+    enum QueueEvent { PKT_ENQUEUE=0, PKT_DROP=1, PKT_SERVICE=2, PKT_TRIM=3, PKT_BOUNCE=4, PKT_UNQUEUE=5, PKT_ARRIVE=6, PKT_SERVICE_START=7 }; // PKT_SERVICE fires at a packet's completion; PKT_SERVICE_START when its service begins
     enum QueueRecord { CUM_TRAFFIC=0 };
     enum QueueApprox { QUEUE_RANGE=0, QUEUE_OVERFLOW=1 };
     virtual void logQueue(BaseQueue& queue, QueueEvent ev, Packet& pkt) = 0;

@@ -81,6 +81,9 @@ string QueueLoggerSimple::event_to_str(RawLogEvent& event) {
     case QueueLogger::PKT_SERVICE:
         ss << " Ev SERVICE";
         break;
+    case QueueLogger::PKT_SERVICE_START:
+        ss << " Ev SERVICE_START";
+        break;
     case QueueLogger::PKT_TRIM:
         ss << " Ev TRIM";
         break;

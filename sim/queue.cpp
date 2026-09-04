@@ -132,6 +132,7 @@ Queue::beginService()
 {
     /* schedule the next dequeue event */
     assert(!_enqueued.empty());
+    if (_logger) _logger->logQueue(*this, QueueLogger::PKT_SERVICE_START, *_enqueued.back());
     eventlist().sourceIsPendingRel(*this, drainTime(_enqueued.back()));
 }
 
@@ -500,6 +501,7 @@ FairPriorityQueue::beginService()
             _sending = _queue[prio].dequeue();
 
             assert (_sending != NULL);
+            if (_logger) _logger->logQueue(*this, QueueLogger::PKT_SERVICE_START, *_sending);
             eventlist().sourceIsPendingRel(*this, drainTime(_sending));
             _servicing = (queue_priority_t)prio;
             return;
