@@ -1,4 +1,5 @@
 // -*- c-basic-offset: 4; indent-tabs-mode: nil -*-        
+#include <random>
 #ifndef _LOSSLESS_OUTPUT_QUEUE_H
 #define _LOSSLESS_OUTPUT_QUEUE_H
 /*
@@ -20,6 +21,9 @@ public:
 
     void receivePacket(Packet& pkt);
     void receivePacket(Packet& pkt,VirtualQueue* q);
+    // ECN marking the way the ns-3 HPCC model's switch does it: at dequeue, on the bytes left in the
+    // queue, always above kmax, with probability pmax * (q - kmin) / (kmax - kmin) between; data only.
+    void setEcnMarking(mem_b kmin, mem_b kmax, double pmax, uint32_t seed);
 
     void beginService();
     void completeService();
@@ -33,6 +37,12 @@ private:
 
     int _state_send;
     int _sending;
+    bool _marking = false;
+    mem_b _kmin = 0;
+    mem_b _kmax = 0;
+    double _pmax = 0;
+    std::mt19937 _marking_rng;
+    bool should_mark();
     uint64_t _txbytes;
 
     int _ecn_enabled;

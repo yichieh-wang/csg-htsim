@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include "roce.h"
+#include "ecn.h"
 #include "queue.h"
 #include <stdio.h>
 #include "switch.h"
@@ -138,6 +139,7 @@ void RoceSrc::connect(Route* routeout, Route* routeback, RoceSink& sink, simtime
    it.  However, sometimes the NACK has the PULL bit set, and then we
    resend immediately */
 void RoceSrc::processNack(const RoceNack& nack){
+    if (nack.flags() & ECN_ECHO) onCnp();
     _last_acked = nack.ackno();
     _rtx_packets_sent += _highest_sent - _last_acked;
 
@@ -163,6 +165,7 @@ void RoceSrc::processNack(const RoceNack& nack){
 
 /* Process an ACK.  Mostly just housekeeping*/
 void RoceSrc::processAck(const RoceAck& ack) {
+    if (ack.flags() & ECN_ECHO) onCnp();
     RoceAck::seq_t ackno = ack.ackno();
     simtime_picosec ts = ack.ts();
 
@@ -409,6 +412,7 @@ void RoceSink::receivePacket(Packet& pkt) {
     }
 
     RocePacket *p = (RocePacket*)(&pkt);
+    bool ce = (pkt.flags() & ECN_CE) != 0;
     RocePacket::seq_t seqno = p->seqno();
     if (_log_me) {
         cout << "Sink " << get_id() << " recv'd " << seqno << endl;
@@ -417,7 +421,7 @@ void RoceSink::receivePacket(Packet& pkt) {
     //bool last_packet = ((RocePacket*)&pkt)->last_packet();
 
     if (seqno > _cumulative_ack+1){
-        send_nack(ts,_cumulative_ack);  
+        send_nack(ts,_cumulative_ack, ce);  
         pkt.flow().logTraffic(pkt,*this,TrafficLogger::PKT_RCVDESTROY);
 
         p->free();
@@ -433,22 +437,23 @@ void RoceSink::receivePacket(Packet& pkt) {
     } else if (seqno < _cumulative_ack+1) {
         //must have been a bad retransmit
     }
-    send_ack(ts);
+    send_ack(ts, ce);
     // have we seen everything yet?
     pkt.flow().logTraffic(pkt,*this,TrafficLogger::PKT_RCVDESTROY);
     pkt.free();
 }
 
-void RoceSink::send_ack(simtime_picosec ts) {
+void RoceSink::send_ack(simtime_picosec ts, bool ce) {
     RoceAck *ack = 0;
     ack = RoceAck::newpkt(_src->_flow, *_route, _cumulative_ack,_srcaddr);
     if (_log_me)
         cout << "Sink " << get_id() << " sending ack " << _cumulative_ack << endl;
     ack->set_pathid(0);
+    if (ce) ack->set_flags(ack->flags() | ECN_ECHO);
     ack->sendOn();
 }
 
-void RoceSink::send_nack(simtime_picosec ts, RocePacket::seq_t ackno) {
+void RoceSink::send_nack(simtime_picosec ts, RocePacket::seq_t ackno, bool ce) {
     RoceNack *nack = NULL;
     nack = RoceNack::newpkt(_src->_flow, *_route, ackno,_srcaddr);
     if (_log_me)
@@ -458,6 +463,7 @@ void RoceSink::send_nack(simtime_picosec ts, RocePacket::seq_t ackno) {
     assert(nack);
     nack->flow().logTraffic(*nack,*this,TrafficLogger::PKT_CREATE);
     nack->set_ts(ts);
+    if (ce) nack->set_flags(nack->flags() | ECN_ECHO);
     nack->sendOn();
 }
 

@@ -39,6 +39,8 @@ public:
     void set_traffic_logger(TrafficLogger* pktlogger);
 
     void startflow();
+    // An ACK or NACK came back with ECN_ECHO: a data packet of mine was marked. The base does nothing.
+    virtual void onCnp() {}
     void setRate(linkspeed_bps r) {_bitrate = r;_packet_spacing = (simtime_picosec)((Packet::data_packet_size()+RocePacket::ACKSIZE) * (pow(10.0,12.0) * 8) / _bitrate);doNextEvent();}
 
     inline void set_flowid(flowid_t flow_id) { _flow.set_flowid(flow_id);}
@@ -189,8 +191,8 @@ private:
     RocePacket::seq_t _highest_seqno;
  
     // Mechanism
-    void send_ack(simtime_picosec ts);
-    void send_nack(simtime_picosec ts, RocePacket::seq_t ackno);
+    void send_ack(simtime_picosec ts, bool ce = false);
+    void send_nack(simtime_picosec ts, RocePacket::seq_t ackno, bool ce = false);
 };
 
 

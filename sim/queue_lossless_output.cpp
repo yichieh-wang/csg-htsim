@@ -1,4 +1,5 @@
 // -*- c-basic-offset: 4; indent-tabs-mode: nil -*-        
+#include "ecn.h"
 #include <math.h>
 #include <iostream>
 #include <sstream>
@@ -143,6 +144,8 @@ void LosslessOutputQueue::completeService(){
     _queuesize -= pkt->size();
     _txbytes += pkt->size();
 
+    if (_marking && pkt->type() == ROCE && should_mark()) pkt->set_flags(pkt->flags() | ECN_CE);
+
     pkt->flow().logTraffic(*pkt, *this, TrafficLogger::PKT_DEPART);
 
     if (_logger) _logger->logQueue(*this, QueueLogger::PKT_SERVICE, *pkt);
@@ -173,4 +176,19 @@ void LosslessOutputQueue::completeService(){
             /* start packet transmission, schedule the next dequeue event */
             beginService();
     }
+}
+
+void LosslessOutputQueue::setEcnMarking(mem_b kmin, mem_b kmax, double pmax, uint32_t seed) {
+    _marking = true;
+    _kmin = kmin;
+    _kmax = kmax;
+    _pmax = pmax;
+    _marking_rng.seed(seed);
+}
+
+bool LosslessOutputQueue::should_mark() {
+    if (_queuesize > _kmax) return true;
+    if (_queuesize <= _kmin || _kmax <= _kmin) return false;
+    double p = _pmax * (double)(_queuesize - _kmin) / (double)(_kmax - _kmin);
+    return std::uniform_real_distribution<double>(0.0, 1.0)(_marking_rng) < p;
 }
