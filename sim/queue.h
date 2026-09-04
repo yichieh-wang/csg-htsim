@@ -175,6 +175,12 @@ class FairPriorityQueue : public HostQueue {
     virtual void completeService(); 
     FairPriorityQueue::queue_priority_t getPriority(Packet& pkt);
     FairPullQueue<Packet> _queue[Q_NONE];
+ public:
+    // A finished flow's queues leave the map: nothing of it is queued any more.
+    void forget_flow(flowid_t flow_id) {
+        for (int prio = Q_LO; prio < Q_NONE; ++prio) _queue[prio].flush_flow(flow_id, prio);
+    }
+ protected:
 
     Packet* _sending;
     mem_b _queuesize[Q_NONE];

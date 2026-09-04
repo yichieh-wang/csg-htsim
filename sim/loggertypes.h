@@ -27,6 +27,7 @@ class LoggedManager {
 public:
     LoggedManager();
     void add_logged(Logged* logged);
+    void remove_logged(Logged* logged); // a deleted object leaves the map, so the map never holds a dangling pointer
     void dump_idmap();
 private:
     vector<Logged*> _idmap;
@@ -36,7 +37,7 @@ class Logged {
  public:
     typedef uint32_t id_t;
     Logged(const string& name) {_name=name; _log_id=LASTIDNUM; Logged::LASTIDNUM++; _logged_manager.add_logged(this);}
-    virtual ~Logged() {}
+    virtual ~Logged() { _logged_manager.remove_logged(this); }
     virtual void setName(const string& name) { _name=name; }
     virtual const string& str() { return _name; };
     inline id_t get_id() const {return _log_id;}

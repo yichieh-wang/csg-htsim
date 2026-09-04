@@ -124,6 +124,7 @@ FairPullQueue<PullPkt>::flush_flow(flowid_t flow_id, int /*priority*/) {
     if (_current_queue == i)
         _current_queue++;
     _queue_map.erase(i);
+    delete pull_queue; // the flow's queue leaves with its map entry
 }
 
 template<class PullPkt>

@@ -14,6 +14,16 @@ void LoggedManager::add_logged(Logged* logged) {
     _idmap.push_back(logged);
 }
 
+void LoggedManager::remove_logged(Logged* logged) {
+    // A deleted object is usually a recent one: search from the end.
+    for (size_t i = _idmap.size(); i > 0; --i) {
+        if (_idmap[i - 1] == logged) {
+            _idmap.erase(_idmap.begin() + (i - 1));
+            return;
+        }
+    }
+}
+
 void LoggedManager::dump_idmap() {
     std::ofstream fout("idmap.txt");
     for (size_t i = 0; i < _idmap.size(); i++) {
